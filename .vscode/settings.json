@@ -1,5 +1,6 @@
 {
     "elm.reactorSubdir": "frontend/",
-    "elm.makeOutput": "frontend/build/elm.js"
+    "elm.makeOutput": "frontend/build/elm.js",
+    "elm.elmTestFileMatcher": "frontend/tests/"
     
 }
