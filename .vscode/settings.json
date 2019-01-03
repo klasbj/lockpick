@@ -1,0 +1,5 @@
+{
+    "elm.reactorSubdir": "frontend/",
+    "elm.makeOutput": "frontend/build/elm.js"
+    
+}
