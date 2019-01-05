@@ -5,6 +5,7 @@ import Browser.Navigation as Nav
 import Html exposing (..)
 import Html.Attributes as Attr
 import Html.Events exposing (onClick)
+import Page
 import Route
 import Session exposing (Session)
 import Url exposing (Url)
@@ -92,31 +93,14 @@ update msg model =
 -- VIEW
 
 
-view : Model -> Html Msg
+view : Model -> Browser.Document Msg
 view model =
     case model of
         Index _ ->
-            header [ Attr.class "header" ]
-                [ nav []
-                    [ a [ Route.href Route.Index ] [ text "Home" ]
-                    , a [ Route.href Route.Games ] [ text "Games" ]
-                    , a [ Route.href Route.Decks ] [ text "Decks" ]
-                    , a [ Attr.href "/borked" ] [ text "Borked" ]
-                    ]
-                ]
+            Page.view Page.Home { title = "Home", content = p [] [ text "helo" ] }
 
         NotFound _ ->
-            div []
-                [ p [] [ text "Page not found" ]
-                , p [] [ a [ Route.href Route.Index ] [ text "Home" ] ]
-                ]
-
-
-viewDoc : Model -> Browser.Document Msg
-viewDoc model =
-    { title = "Title"
-    , body = [ view model ]
-    }
+            Page.view Page.Other { title = "Page Not Found", content = p [] [ text "Page not found" ] }
 
 
 
@@ -132,7 +116,7 @@ main : Program () Model Msg
 main =
     Browser.application
         { init = init
-        , view = viewDoc
+        , view = view
         , update = update
         , subscriptions = \_ -> Sub.none
         , onUrlRequest = UrlRequest

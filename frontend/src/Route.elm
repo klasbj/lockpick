@@ -20,8 +20,8 @@ fromUrl =
 
 
 href : Route -> Html.Attribute msg
-href route =
-    Html.Attributes.href (toString route)
+href =
+    Html.Attributes.href << toString
 
 
 toString : Route -> String
