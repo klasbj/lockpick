@@ -13,3 +13,11 @@ nav > a.active {
     border-bottom: solid 3px orange;
     background-color: lightgoldenrodyellow;
 }
+
+.game-result {
+    background-color: lightcoral;
+}
+
+.game-result.winner {
+    background-color: lightseagreen;
+}
