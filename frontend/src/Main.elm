@@ -1,21 +1,63 @@
 module Main exposing (main)
 
 import Browser
+import Browser.Navigation as Nav
 import Html exposing (..)
+import Html.Attributes as Attr
 import Html.Events exposing (onClick)
+import Route
+import Session exposing (Session)
+import Url exposing (Url)
 
 
 
 -- MODEL
 
 
-type alias Model =
-    Int
+type Model
+    = Index Session
+    | NotFound Session
 
 
-init : Model
-init =
-    0
+init : flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
+init _ url key =
+    let
+        _ =
+            Debug.log "" (Route.fromUrl url)
+    in
+    changePageTo (Session.fromNavKey key) (Route.fromUrl url)
+
+
+changePageTo : Session -> Maybe Route.Route -> ( Model, Cmd Msg )
+changePageTo session route =
+    case route of
+        Nothing ->
+            ( NotFound session, Cmd.none )
+
+        Just Route.Index ->
+            ( Index session, Cmd.none )
+
+        Just (Route.Deck _) ->
+            ( Index session, Cmd.none )
+
+        Just Route.Decks ->
+            ( Index session, Cmd.none )
+
+        Just (Route.Game _) ->
+            ( Index session, Cmd.none )
+
+        Just Route.Games ->
+            ( Index session, Cmd.none )
+
+
+toSession : Model -> Session
+toSession model =
+    case model of
+        Index s ->
+            s
+
+        NotFound s ->
+            s
 
 
 
@@ -23,18 +65,27 @@ init =
 
 
 type Msg
-    = Reset
-    | Increment
+    = UrlRequest Browser.UrlRequest
+    | UrlChange Url
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    let
+        session =
+            toSession model
+    in
     case msg of
-        Reset ->
-            0
+        UrlRequest urlrequest ->
+            case urlrequest of
+                Browser.Internal url ->
+                    ( model, Nav.pushUrl (Session.navKey session) <| Url.toString url )
 
-        Increment ->
-            model + 1
+                Browser.External url ->
+                    ( model, Nav.load url )
+
+        UrlChange url ->
+            changePageTo session (Route.fromUrl url)
 
 
 
@@ -43,11 +94,29 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ p [] [ text ("woo " ++ String.fromInt model) ]
-        , button [ onClick Increment ] [ text "+" ]
-        , button [ onClick Reset ] [ text "Reset" ]
-        ]
+    case model of
+        Index _ ->
+            header [ Attr.class "header" ]
+                [ nav []
+                    [ a [ Route.href Route.Index ] [ text "Home" ]
+                    , a [ Route.href Route.Games ] [ text "Games" ]
+                    , a [ Route.href Route.Decks ] [ text "Decks" ]
+                    , a [ Attr.href "/borked" ] [ text "Borked" ]
+                    ]
+                ]
+
+        NotFound _ ->
+            div []
+                [ p [] [ text "Page not found" ]
+                , p [] [ a [ Route.href Route.Index ] [ text "Home" ] ]
+                ]
+
+
+viewDoc : Model -> Browser.Document Msg
+viewDoc model =
+    { title = "Title"
+    , body = [ view model ]
+    }
 
 
 
@@ -59,9 +128,13 @@ subscriptions model =
     Sub.none
 
 
+main : Program () Model Msg
 main =
-    Browser.sandbox
+    Browser.application
         { init = init
-        , view = view
+        , view = viewDoc
         , update = update
+        , subscriptions = \_ -> Sub.none
+        , onUrlRequest = UrlRequest
+        , onUrlChange = UrlChange
         }
