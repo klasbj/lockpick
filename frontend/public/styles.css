@@ -1,0 +1,15 @@
+nav > a {
+    width: 5em;
+    padding-bottom: 0.2em;
+    height: 3em;
+    justify-content: flex-end;
+    text-align: center;
+    display: inline-flex;
+    flex-direction: column;
+    background-color: lightblue;
+    border-bottom: solid 3px grey;
+}
+nav > a.active {
+    border-bottom: solid 3px orange;
+    background-color: lightgoldenrodyellow;
+}

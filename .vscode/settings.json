@@ -1,8 +1,7 @@
 {
     "elm.reactorSubdir": "frontend/",
-    "elm.makeOutput": "build/index.html",
+    "elm.makeOutput": "build/main.js",
     "elm.elmTestFileMatcher": "frontend/tests/",
-    "elm.makeSpecialFile": "src/Main.elm",
-    "elm.makeCommand": "elm-make --debug"
+    "elm.makeSpecialFile": "src/Main.elm"
     
 }
