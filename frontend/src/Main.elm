@@ -6,6 +6,7 @@ import Html exposing (..)
 import Html.Attributes as Attr
 import Html.Events exposing (onClick)
 import Page
+import Page.Games as Games
 import Route
 import Session exposing (Session)
 import Url exposing (Url)
@@ -18,6 +19,8 @@ import Url exposing (Url)
 type Model
     = Index Session
     | NotFound Session
+    | Games Games.Model
+    | Decks Session
 
 
 init : flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
@@ -39,16 +42,23 @@ changePageTo session route =
             ( Index session, Cmd.none )
 
         Just (Route.Deck _) ->
-            ( Index session, Cmd.none )
+            ( Decks session, Cmd.none )
 
         Just Route.Decks ->
-            ( Index session, Cmd.none )
+            ( Decks session, Cmd.none )
 
         Just (Route.Game _) ->
-            ( Index session, Cmd.none )
+            Games.init session
+                |> wrapWith Games GamesMsg
 
         Just Route.Games ->
-            ( Index session, Cmd.none )
+            Games.init session
+                |> wrapWith Games GamesMsg
+
+
+wrapWith : (subModel -> Model) -> (subMsg -> Msg) -> ( subModel, Cmd subMsg ) -> ( Model, Cmd Msg )
+wrapWith wrapModel wrapCmd ( model, cmd ) =
+    ( wrapModel model, Cmd.map wrapCmd cmd )
 
 
 toSession : Model -> Session
@@ -60,6 +70,12 @@ toSession model =
         NotFound s ->
             s
 
+        Games m ->
+            Games.toSession m
+
+        Decks s ->
+            s
+
 
 
 -- UPDATE
@@ -68,25 +84,33 @@ toSession model =
 type Msg
     = UrlRequest Browser.UrlRequest
     | UrlChange Url
+    | GamesMsg Games.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update outerMessage outerModel =
     let
         session =
-            toSession model
+            toSession outerModel
     in
-    case msg of
-        UrlRequest urlrequest ->
+    case ( outerMessage, outerModel ) of
+        ( UrlRequest urlrequest, _ ) ->
             case urlrequest of
                 Browser.Internal url ->
-                    ( model, Nav.pushUrl (Session.navKey session) <| Url.toString url )
+                    ( outerModel, Nav.pushUrl (Session.navKey session) <| Url.toString url )
 
                 Browser.External url ->
-                    ( model, Nav.load url )
+                    ( outerModel, Nav.load url )
 
-        UrlChange url ->
+        ( UrlChange url, _ ) ->
             changePageTo session (Route.fromUrl url)
+
+        ( GamesMsg msg, Games model ) ->
+            Games.update msg model
+                |> wrapWith Games GamesMsg
+
+        _ ->
+            ( outerModel, Cmd.none )
 
 
 
@@ -95,12 +119,26 @@ update msg model =
 
 view : Model -> Browser.Document Msg
 view model =
+    let
+        viewPage page toMsg data =
+            let
+                { title, body } =
+                    Page.view page data
+            in
+            { title = title, body = List.map (Html.map toMsg) body }
+    in
     case model of
         Index _ ->
             Page.view Page.Home { title = "Home", content = p [] [ text "helo" ] }
 
         NotFound _ ->
             Page.view Page.Other { title = "Page Not Found", content = p [] [ text "Page not found" ] }
+
+        Games m ->
+            viewPage Page.Games GamesMsg (Games.view m)
+
+        Decks _ ->
+            Page.view Page.Decks { title = "Decks", content = p [] [ text "Decks" ] }
 
 
 
