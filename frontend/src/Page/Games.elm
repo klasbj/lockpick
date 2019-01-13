@@ -12,21 +12,18 @@ import Task
 
 type alias Model =
     { session : Session
-    , games : List Game
+    , matches : List Match
     }
 
 
-type alias Game =
-    { firstPlayer : Player
-    , secondPlayer : Player
-    , winner : Winner
-    }
+type Match
+    = SingleGame Format Player Player (Maybe Winner)
+    | BestOfThree Format Player Player (Maybe Winner) (Maybe Winner) (Maybe Winner)
 
 
 type alias Player =
     { playerName : String
     , deck : Deck
-    , chains : Int
     }
 
 
@@ -56,6 +53,11 @@ type Winner
     | SecondPlayer
 
 
+type Format
+    = Archon
+    | Sealed
+
+
 toSession : Model -> Session
 toSession m =
     m.session
@@ -63,7 +65,7 @@ toSession m =
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( { session = session, games = [] }, Task.perform identity <| Task.succeed LoadGames )
+    ( { session = session, matches = [] }, Task.perform identity <| Task.succeed LoadGames )
 
 
 
@@ -79,33 +81,36 @@ update msg model =
     case msg of
         LoadGames ->
             ( { model
-                | games =
-                    [ { firstPlayer = player "a" "deckA" "123" Dis Sanctum Mars 0
-                      , secondPlayer = player "b" "deckB" "543" Mars Brobnar Shadows 0
-                      , winner = SecondPlayer
-                      }
-                    , { firstPlayer = player "a" "deckB" "543" Mars Brobnar Shadows 0
-                      , secondPlayer = player "b" "deckA" "123" Dis Sanctum Mars 0
-                      , winner = FirstPlayer
-                      }
-                    , { firstPlayer = player "b" "deckB" "543" Mars Brobnar Shadows 12
-                      , secondPlayer = player "a" "deckA" "123" Dis Sanctum Mars 0
-                      , winner = FirstPlayer
-                      }
+                | matches =
+                    let
+                        deckA =
+                            makeDeck "deckA" "123" Dis Sanctum Mars
+
+                        deckB =
+                            makeDeck "deckB" "543" Mars Brobnar Shadows
+
+                        deckC =
+                            makeDeck "deckC" "9" Sanctum Shadows Brobnar
+
+                        deckD =
+                            makeDeck "deckD" "34" Untamed Logos Dis
+                    in
+                    [ BestOfThree Archon (player "a" deckA) (player "b" deckB) (Just SecondPlayer) (Just FirstPlayer) (Just SecondPlayer)
+                    , BestOfThree Archon (player "a" deckA) (player "b" deckB) (Just SecondPlayer) (Just SecondPlayer) Nothing
+                    , SingleGame Sealed (player "c" deckC) (player "d" deckD) (Just SecondPlayer)
                     ]
               }
             , Cmd.none
             )
 
 
-player name deckName deckId h1 h2 h3 chains =
+makeDeck name id h1 h2 h3 =
+    { name = name, id = id, houses = Houses h1 h2 h3 }
+
+
+player name deck =
     { playerName = name
-    , deck =
-        { name = deckName
-        , id = deckId
-        , houses = Houses h1 h2 h3
-        }
-    , chains = chains
+    , deck = deck
     }
 
 
@@ -119,31 +124,98 @@ view model =
     , content =
         div []
             [ p [] [ text "Games all around" ]
-            , viewGameTable model.games
+            , viewMatches model.matches
             ]
     }
 
 
-viewGameTable : List Game -> Html Msg
-viewGameTable games =
-    div [ Attr.class "gametable" ]
-        [ table []
-            ((tr [] <| List.map headerCell [ "Player", "Deck", "Chains", "vs", "Player", "Deck", "Chains" ]) :: List.map gameRow games)
-        ]
+viewMatches : List Match -> Html Msg
+viewMatches matches =
+    ul [ Attr.class "matchlist" ] <|
+        List.map viewMatch matches
 
 
-headerCell s =
-    th [] [ text s ]
-
-
-gameRow { firstPlayer, secondPlayer, winner } =
-    tr [] <| playerAndDeck firstPlayer (winner == FirstPlayer) ++ [td [] []] ++ playerAndDeck secondPlayer (winner == SecondPlayer)
-
-
-playerAndDeck : Player -> Bool -> List (Html Msg)
-playerAndDeck { playerName, deck, chains } isWinner =
+viewMatch : Match -> Html Msg
+viewMatch match =
     let
-        cell s =
-            td [ Attr.classList [ ("game-result", True), ( "winner", isWinner ) ] ] [ text s ]
+        row description format elems =
+            li [] [ div [] <| small [] [ text description, text " ", viewFormat format ] :: elems ]
+
+        viewPlayers ( p1, p2 ) score winner =
+            div []
+                [ viewPlayer p1 (winner == Just FirstPlayer)
+                , viewScore score
+                , viewPlayer p2 (winner == Just SecondPlayer)
+                ]
+
+        viewPlayer { playerName, deck } isWinner =
+            div [ Attr.classList [ ( "Player", True ), ( "Winner", isWinner ) ] ]
+                [ div [ Attr.class "PlayerName" ] [ text playerName ]
+                , viewDeck deck
+                ]
+
+        viewDeck : Deck -> Html Msg
+        viewDeck deck =
+            div [ Attr.class "Deck" ] [ small [] [ text deck.name ] ]
+
+        viewScore ( score1, score2 ) =
+            div [ Attr.class "Scores" ] [ text <| String.fromInt score1 ++ " \u{2013} " ++ String.fromInt score2 ]
     in
-    [ cell playerName, cell deck.name, cell (String.fromInt chains) ]
+    case match of
+        SingleGame format player1 player2 winner ->
+            let
+                score =
+                    if winner == Just FirstPlayer then
+                        ( 1, 0 )
+
+                    else
+                        ( 0, 1 )
+            in
+            row "Single game"
+                format
+                [ viewPlayers ( player1, player2 ) score winner ]
+
+        BestOfThree format player1 player2 game1 game2 game3 ->
+            row "Best of three"
+                format
+                [ viewPlayers ( player1, player2 ) (bo3Score game1 game2 game3) (bo3Winner game1 game2 game3) ]
+
+
+viewFormat : Format -> Html Msg
+viewFormat f =
+    case f of
+        Archon ->
+            text "Archon"
+
+        Sealed ->
+            text "Sealed"
+
+
+bo3Score : Maybe Winner -> Maybe Winner -> Maybe Winner -> ( Int, Int )
+bo3Score a b c =
+    let
+        winners =
+            [ a, b, c ]
+    in
+    ( List.filter ((==) (Just FirstPlayer)) winners |> List.length
+    , List.filter ((==) (Just SecondPlayer)) winners |> List.length
+    )
+
+
+bo3Winner : Maybe Winner -> Maybe Winner -> Maybe Winner -> Maybe Winner
+bo3Winner a b c =
+    case ( a, b, c ) of
+        ( Just FirstPlayer, Just FirstPlayer, _ ) ->
+            Just FirstPlayer
+
+        ( Just SecondPlayer, Just SecondPlayer, _ ) ->
+            Just SecondPlayer
+
+        ( _, _, Just FirstPlayer ) ->
+            Just FirstPlayer
+
+        ( _, _, Just SecondPlayer ) ->
+            Just SecondPlayer
+
+        ( _, _, _ ) ->
+            Nothing
