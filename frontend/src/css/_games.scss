@@ -1,0 +1,35 @@
+.matchlist {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+
+    li {
+        text-align: center;
+    }
+}
+
+.Players {
+    display: flex;
+    flex: {
+        direction: row;
+        wrap: nowrap;
+    }
+    justify-content: space-between;
+    align-items: stretch;
+    align-content: stretch;
+    width: 100%;
+}
+
+.Player {
+    display: inline-block;
+    flex: 1 0;
+    text-align: left;
+    overflow: hidden;
+}
+
+.Scores {
+    display: inline-block;
+    flex: 0 0 5em;
+    font-size: larger;
+}

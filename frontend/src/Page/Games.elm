@@ -115,7 +115,7 @@ viewMatch match =
             li [] [ div [] <| small [] [ text description, text " ", viewFormat format ] :: elems ]
 
         viewPlayers ( p1, p2 ) score result =
-            div []
+            div [ Attr.class "Players" ]
                 [ viewPlayer p1 result
                 , viewScore score
                 , viewPlayer p2 result

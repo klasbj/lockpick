@@ -1,0 +1,10 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "license": "BSD",
+  "dependencies": {},
+  "devDependencies": {
+    "sass": "^1.16.1",
+    "serve": "^10.1.1"
+  }
+}
