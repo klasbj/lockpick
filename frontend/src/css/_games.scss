@@ -1,3 +1,21 @@
+
+@mixin hide {
+    font-size: 0;
+    margin: 0;
+    //opacity: 0;
+    padding: 0;
+
+    transition: font-size .5s,
+                margin .5s,
+                padding .5s;
+}
+
+@mixin reveal {
+    transition: font-size .25s,
+                margin .25s,
+                padding .25s;
+}
+
 .matchlist {
     list-style-type: none;
     padding: 0;
@@ -7,6 +25,18 @@
     li {
         text-align: center;
     }
+}
+
+.Format {
+    font-size: small;
+}
+
+.GamesList {
+    overflow: hidden;
+    list-style-type: none;
+    padding: .2em 1em;
+    margin: 0;
+    font-size: small;
 }
 
 .Players {
@@ -19,6 +49,27 @@
     align-items: stretch;
     align-content: stretch;
     width: 100%;
+
+    .Scores {
+        font-size: larger;
+    }
+}
+
+.GameResult {
+    display: flex;
+    flex: {
+        direction: row;
+        wrap: nowrap;
+    }
+    justify-content: space-between;
+    align-items: stretch;
+    align-content: stretch;
+    width: 100%;
+}
+
+.StartingPlayer::after {
+    content: "ғ";
+    margin: 0 8px;
 }
 
 .Player {
@@ -30,6 +81,40 @@
 
 .Scores {
     display: inline-block;
-    flex: 0 0 5em;
-    font-size: larger;
+    flex: 0 0 80px;
+}
+
+.ExpandButton {
+    font-size: xx-small;
+    background-color: lightgray;
+    color: darkgray;
+
+    &:hover {
+        background-color: darkgray;
+        color: lightgray;
+    }
+}
+
+.Unexpanded {
+    .Format {
+        @include hide()
+    }
+
+    .GamesList {
+        @include hide()
+    }
+}
+
+.Expanded {
+    .Format {
+        @include reveal()
+    }
+
+    .GamesList {
+        @include reveal()
+    }
+
+    .ExpandButton {
+        transform: rotate(180deg);
+    }
 }

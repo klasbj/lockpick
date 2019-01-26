@@ -1,9 +1,9 @@
-module Data.Match exposing (Format(..), Match, MatchResult(..), Variant(..), addGames, bestOfXMatch, format, games, matchResult, players, score, seriesMatch, singleGameMatch, variant)
+module Data.Match exposing (Format(..), Match, MatchResult(..), Variant(..), addGames, bestOfXMatch, format, games, id, matchResult, players, score, seriesMatch, singleGameMatch, variant)
 
 import Data.Deck exposing (Deck)
 import Data.Game exposing (Game)
 import Data.Player exposing (Player)
-
+import Data.Id exposing (Id)
 
 type Format
     = Archon
@@ -17,7 +17,7 @@ type Variant
 
 
 type Match
-    = Match Format Variant ( Player, Deck ) ( Player, Deck ) (List Game)
+    = Match Id Format Variant ( Player, Deck ) ( Player, Deck ) (List Game)
 
 
 type MatchResult
@@ -27,33 +27,33 @@ type MatchResult
     | Invalid
 
 
-bestOfXMatch : Int -> Format -> ( Player, Deck ) -> ( Player, Deck ) -> List Game -> Match
-bestOfXMatch x f p1 p2 gs =
-    Match f (BestOf x) p1 p2 gs
+bestOfXMatch : Int -> Id -> Format -> ( Player, Deck ) -> ( Player, Deck ) -> List Game -> Match
+bestOfXMatch x i f p1 p2 gs =
+    Match i f (BestOf x) p1 p2 gs
 
 
-singleGameMatch : Format -> ( Player, Deck ) -> ( Player, Deck ) -> Game -> Match
-singleGameMatch f p1 p2 game =
-    Match f SingleGame p1 p2 [ game ]
+singleGameMatch : Id -> Format -> ( Player, Deck ) -> ( Player, Deck ) -> Game -> Match
+singleGameMatch i f p1 p2 game =
+    Match i f SingleGame p1 p2 [ game ]
 
 
-seriesMatch : Format -> ( Player, Deck ) -> ( Player, Deck ) -> List Game -> Match
-seriesMatch f p1 p2 gs =
-    Match f Series p1 p2 gs
+seriesMatch : Id -> Format -> ( Player, Deck ) -> ( Player, Deck ) -> List Game -> Match
+seriesMatch i f p1 p2 gs =
+    Match i f Series p1 p2 gs
 
 
 addGames : Match -> List Game -> Match
-addGames (Match f v p1 p2 gs) =
-    Match f v p1 p2 << (++) gs
+addGames (Match i f v p1 p2 gs) =
+    Match i f v p1 p2 << (++) gs
 
 
 games : Match -> List Game
-games (Match _ _ _ _ gs) =
+games (Match _ _ _ _ _ gs) =
     gs
 
 
 variant : Match -> String
-variant (Match _ v _ _ _) =
+variant (Match _ _ v _ _ _) =
     case v of
         BestOf x ->
             "Best of " ++ String.fromInt x
@@ -66,13 +66,18 @@ variant (Match _ v _ _ _) =
 
 
 format : Match -> Format
-format (Match f _ _ _ _) =
+format (Match _ f _ _ _ _) =
     f
 
 
 players : Match -> ( ( Player, Deck ), ( Player, Deck ) )
-players (Match _ _ p1 p2 _) =
+players (Match _ _ _ p1 p2 _) =
     ( p1, p2 )
+
+
+id : Match -> Id
+id (Match i _ _ _ _ _) =
+    i
 
 
 matchResult : Match -> MatchResult
@@ -82,7 +87,7 @@ matchResult m =
             score m
     in
     case m of
-        Match _ SingleGame _ _ [ Data.Game.Game gameData ] ->
+        Match _ _ SingleGame _ _ [ Data.Game.Game gameData ] ->
             case gameData.result of
                 Data.Game.InProgress ->
                     InProgress
@@ -90,7 +95,7 @@ matchResult m =
                 Data.Game.Winner p ->
                     Winner p
 
-        Match _ (BestOf numGames) ( p1, _ ) ( p2, _ ) gs ->
+        Match _ _ (BestOf numGames) ( p1, _ ) ( p2, _ ) gs ->
             let
                 targetScore =
                     (numGames + 1) // 2
@@ -107,7 +112,7 @@ matchResult m =
             else
                 InProgress
 
-        Match _ Series ( p1, _ ) ( p2, _ ) gs ->
+        Match _ _ Series ( p1, _ ) ( p2, _ ) gs ->
             if List.any (\(Data.Game.Game { result }) -> result == Data.Game.InProgress) gs then
                 InProgress
 
@@ -125,7 +130,7 @@ matchResult m =
 
 
 score : Match -> ( Int, Int )
-score (Match _ _ ( p1, _ ) ( p2, _ ) gs) =
+score (Match _ _ _ ( p1, _ ) ( p2, _ ) gs) =
     let
         gameScore (Data.Game.Game { result }) =
             case result of

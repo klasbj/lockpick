@@ -1,12 +1,15 @@
 module Page.Games exposing (Model, Msg, init, toSession, update, view)
 
 import Data.Deck exposing (Deck(..), House(..))
-import Data.Game
+import Data.Game as Game exposing (Game(..))
+import Data.Id as Id exposing (Id)
 import Data.Match as Match exposing (Match)
-import Data.Player exposing (Player(..))
+import Data.Player as Player exposing (Player(..))
 import Html exposing (..)
 import Html.Attributes as Attr
+import Html.Events as Events
 import Session exposing (Session)
+import Set exposing (Set)
 import Task
 
 
@@ -17,6 +20,7 @@ import Task
 type alias Model =
     { session : Session
     , matches : List Match
+    , expanded : Id.Set
     }
 
 
@@ -27,7 +31,7 @@ toSession m =
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( { session = session, matches = [] }, Task.perform identity <| Task.succeed LoadGames )
+    ( { session = session, matches = [], expanded = Id.empty }, Task.perform identity <| Task.succeed LoadGames )
 
 
 
@@ -36,6 +40,7 @@ init session =
 
 type Msg
     = LoadGames
+    | ToggleDetails Id
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -58,12 +63,13 @@ update msg model =
                             makeDeck "deckD" "34" Untamed Logos Dis
                     in
                     [ Match.bestOfXMatch 3
+                        (Id.Guid "m1")
                         Match.Archon
                         (player "a" deckA)
                         (player "b" deckB)
-                        [ game (player "a" deckA) (player "b" deckB) "a"
-                        , game (player "a" deckA) (player "b" deckB) "b"
-                        , game (player "a" deckA) (player "b" deckB) "b"
+                        [ makeGame (player "a" deckA) (player "b" deckB) "a"
+                        , makeGame (player "b" deckB) (player "a" deckA) "b"
+                        , makeGame (player "a" deckA) (player "b" deckB) "b"
                         ]
 
                     --, BestOfThree Archon (player "a" deckA) (player "b" deckB) (Just SecondPlayer) (Just SecondPlayer) Nothing
@@ -72,6 +78,13 @@ update msg model =
               }
             , Cmd.none
             )
+
+        ToggleDetails id ->
+            if Id.member id model.expanded then
+                ( { model | expanded = Id.remove id model.expanded }, Cmd.none )
+
+            else
+                ( { model | expanded = Id.insert id model.expanded }, Cmd.none )
 
 
 makeDeck name id h1 h2 h3 =
@@ -82,9 +95,9 @@ player name deck =
     ( Player name, deck )
 
 
-game : ( Player, Deck ) -> ( Player, Deck ) -> String -> Data.Game.Game
-game ( p1, d1 ) ( p2, d2 ) winner =
-    Data.Game.Game <| Data.Game.GameData ( ( p1, d1, 0 ), ( p2, d2, 0 ) ) (Data.Game.Winner (Player winner))
+makeGame : ( Player, Deck ) -> ( Player, Deck ) -> String -> Game
+makeGame ( p1, d1 ) ( p2, d2 ) winner =
+    Game <| Game.GameData ( ( p1, d1, 0 ), ( p2, d2, 0 ) ) (Game.Winner (Player winner))
 
 
 
@@ -97,22 +110,25 @@ view model =
     , content =
         div []
             [ p [] [ text "Games all around" ]
-            , viewMatches model.matches
+            , viewMatches model.expanded model.matches
             ]
     }
 
 
-viewMatches : List Match -> Html Msg
-viewMatches matches =
+viewMatches : Id.Set -> List Match -> Html Msg
+viewMatches expanded matches =
     ul [ Attr.class "matchlist" ] <|
-        List.map viewMatch matches
+        List.map (viewMatch expanded) matches
 
 
-viewMatch : Match -> Html Msg
-viewMatch match =
+viewMatch : Id.Set -> Match -> Html Msg
+viewMatch expanded match =
     let
-        row description format elems =
-            li [] [ div [] <| small [] [ text description, text " ", viewFormat format ] :: elems ]
+        showDetails =
+            Id.member (Match.id match) expanded
+
+        row elems =
+            li [ Attr.classList [ ("Match", True), ( "Expanded", showDetails ), ("Unexpanded", not showDetails) ] ] elems
 
         viewPlayers ( p1, p2 ) score result =
             div [ Attr.class "Players" ]
@@ -121,12 +137,9 @@ viewMatch match =
                 , viewPlayer p2 result
                 ]
 
-        viewPlayerName (Player name) =
-            text name
-
         viewPlayer ( p, deck ) result =
             div [ Attr.classList [ ( "Player", True ), ( "Winner", result == Match.Winner p ) ] ]
-                [ div [ Attr.class "PlayerName" ] [ viewPlayerName p ]
+                [ div [ Attr.class "PlayerName" ] [ text <| Player.name p ]
                 , viewDeck deck
                 ]
 
@@ -137,9 +150,11 @@ viewMatch match =
         viewScore ( score1, score2 ) =
             div [ Attr.class "Scores" ] [ text <| String.fromInt score1 ++ " – " ++ String.fromInt score2 ]
     in
-    row (Match.variant match)
-        (Match.format match)
+    row
         [ viewPlayers (Match.players match) (Match.score match) (Match.matchResult match)
+        , div [ Attr.class "Format" ] [ text (Match.variant match), text " ", viewFormat (Match.format match) ]
+        , viewGames match
+        , div [ Attr.class "ExpandButton", Events.onClick <| ToggleDetails <| Match.id match ] [ text "▼" ]
         ]
 
 
@@ -151,3 +166,71 @@ viewFormat f =
 
         Match.Sealed ->
             text "Sealed"
+
+
+viewGames : Match -> Html Msg
+viewGames match =
+    let
+        leftPlayer =
+            Tuple.first << Tuple.first << Match.players <| match
+
+        rightPlayer =
+            Tuple.first << Tuple.second << Match.players <| match
+
+        games =
+            List.map (viewGame leftPlayer rightPlayer) <| Match.games match
+    in
+    ul [ Attr.class "GamesList" ]
+        games
+
+
+viewGame : Player -> Player -> Game -> Html Msg
+viewGame leftPlayer rightPlayer (Game gameData) =
+    let
+        ( ( startingPlayer, _, _ ), ( secondPlayer, _, _ ) ) =
+            gameData.players
+
+        ( leftData, rightData ) =
+            if leftPlayer == startingPlayer then
+                gameData.players
+
+            else
+                ( Tuple.second gameData.players, Tuple.first gameData.players )
+    in
+    viewGame2 leftData rightData startingPlayer gameData.result
+
+
+viewGame2 : ( Player, Deck, Game.Chains ) -> ( Player, Deck, Game.Chains ) -> Player -> Game.GameResult -> Html Msg
+viewGame2 ( player1, deck1, chains1 ) ( player2, deck2, chains2 ) startingPlayer winner =
+    let
+        score =
+            case winner of
+                Game.Winner winningPlayer ->
+                    if winningPlayer == player1 then
+                        text "1 – 0"
+
+                    else
+                        text "0 – 1"
+
+                Game.InProgress ->
+                    text "0 – 0"
+
+        viewPlayer ( p, Deck d, c ) =
+            let
+                chains =
+                    if c > 0 then
+                        span [ Attr.class "Chains" ] [ text <| String.fromInt c ]
+
+                    else
+                        text ""
+            in
+            div [ Attr.classList [ ( "Player", True ), ( "StartingPlayer", startingPlayer == p ) ] ]
+                [ chains
+                , text d.name
+                ]
+    in
+    div [ Attr.class "GameResult" ]
+        [ viewPlayer ( player1, deck1, chains1 )
+        , div [ Attr.class "Scores" ] [ score ]
+        , viewPlayer ( player2, deck2, chains2 )
+        ]

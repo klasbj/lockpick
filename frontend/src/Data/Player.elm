@@ -1,4 +1,4 @@
-module Data.Player exposing (Name, Player(..))
+module Data.Player exposing (Name, Player(..), name)
 
 
 type alias Name =
@@ -7,3 +7,7 @@ type alias Name =
 
 type Player
     = Player Name
+
+
+name (Player n) =
+    n
