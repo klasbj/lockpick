@@ -128,7 +128,7 @@ viewMatch expanded match =
             Id.member (Match.id match) expanded
 
         row elems =
-            li [ Attr.classList [ ("Match", True), ( "Expanded", showDetails ), ("Unexpanded", not showDetails) ] ] elems
+            li [ Attr.classList [ ( "Match", True ), ( "Expanded", showDetails ), ( "Unexpanded", not showDetails ) ] ] elems
 
         viewPlayers ( p1, p2 ) score result =
             div [ Attr.class "Players" ]
