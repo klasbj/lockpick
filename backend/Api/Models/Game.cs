@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace Api.Models {
     public class Game {
@@ -11,6 +13,9 @@ namespace Api.Models {
 
         public Player Winner { get; set; }
 
+        public DateTime Time { get; set; }
+
+        [JsonConverter(typeof(StringEnumConverter))]
         public enum GameState {
             Finished,
             InProgress
@@ -19,7 +24,7 @@ namespace Api.Models {
         public class PlayerData {
             public Player Player { get; set; }
 
-            public string Deck { get; set; }
+            public Deck Deck { get; set; }
 
             public int Chains { get; set; }
         }

@@ -2,8 +2,9 @@ module Data.Match exposing (Format(..), Match, MatchResult(..), Variant(..), add
 
 import Data.Deck exposing (Deck)
 import Data.Game exposing (Game)
-import Data.Player exposing (Player)
 import Data.Id exposing (Id)
+import Data.Player exposing (Player)
+
 
 type Format
     = Archon
@@ -18,6 +19,57 @@ type Variant
 
 type Match
     = Match Id Format Variant ( Player, Deck ) ( Player, Deck ) (List Game)
+
+
+matchData =
+    """
+{ "matches":
+  [ { "id": "123-443"
+    , "format": "archon"
+    , "variant":    { "type": "bestof"
+                    , "numGames": 3
+                    , "players":
+                        [ {"playerId": "f018682e-a0a3-4a29-8e7d-aefaf7ef871f", "deckId": "de866e4e-7080-4103-91d6-df36a2ed2c89"}
+                        , {"playerId": "6a08cff5-a1be-4c00-8fd7-d1d33fc2c7a3", "deckId": "da5113b8-9947-4104-bf64-da8e1275deac"}
+                        ]
+                    }
+    , "games":
+        [ { "players":
+            [ {"playerId": "f018682e-a0a3-4a29-8e7d-aefaf7ef871f", "deckId": "de866e4e-7080-4103-91d6-df36a2ed2c89", "chains": 0 }
+            , {"playerId": "6a08cff5-a1be-4c00-8fd7-d1d33fc2c7a3", "deckId": "da5113b8-9947-4104-bf64-da8e1275deac", "chains": 0 }
+            ]
+          , "winner": "f018682e-a0a3-4a29-8e7d-aefaf7ef871f"
+          , "time": "20190127T204916.000+0000"
+          }
+        , { "players":
+            [ {"playerId": "6a08cff5-a1be-4c00-8fd7-d1d33fc2c7a3", "deckId": "da5113b8-9947-4104-bf64-da8e1275deac", "chains": 0 }
+            , {"playerId": "f018682e-a0a3-4a29-8e7d-aefaf7ef871f", "deckId": "de866e4e-7080-4103-91d6-df36a2ed2c89", "chains": 0 }
+            ]
+          , "winner": "6a08cff5-a1be-4c00-8fd7-d1d33fc2c7a3"
+          , "time": "20190127T204916.000+0000"
+          }
+        , { "players":
+            [ {"playerId": "f018682e-a0a3-4a29-8e7d-aefaf7ef871f", "deckId": "de866e4e-7080-4103-91d6-df36a2ed2c89", "chains": 0 }
+            , {"playerId": "6a08cff5-a1be-4c00-8fd7-d1d33fc2c7a3", "deckId": "da5113b8-9947-4104-bf64-da8e1275deac", "chains": 0 }
+            ]
+          , "winner": "6a08cff5-a1be-4c00-8fd7-d1d33fc2c7a3"
+          , "time": "20190127T204916.000+0000"
+          }
+        ]
+    }
+  ]
+, "_refs":
+  { "players":
+    { "f018682e-a0a3-4a29-8e7d-aefaf7ef871f": { "playerId": "f018682e-a0a3-4a29-8e7d-aefaf7ef871f", "name": "a" }
+    , "6a08cff5-a1be-4c00-8fd7-d1d33fc2c7a3": { "playerId": "6a08cff5-a1be-4c00-8fd7-d1d33fc2c7a3", "name": "b" }
+    }
+  , "decks":
+    { "de866e4e-7080-4103-91d6-df36a2ed2c89": { "deckId": "de866e4e-7080-4103-91d6-df36a2ed2c89", "name": "deckA", "houses": ["Dis", "Sanctum", "Mars"], "chains": 0 }
+    , "da5113b8-9947-4104-bf64-da8e1275deac": { "deckId": "da5113b8-9947-4104-bf64-da8e1275deac", "name": "deckB", "houses": ["Mars", "Brobnar", "Shadows"], "chains": 0 }
+    }
+  }
+}
+    """
 
 
 type MatchResult
